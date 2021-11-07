@@ -98,6 +98,14 @@ public:
 	}
 }gameData;
 
+class Settings {
+	int ARR = 0;//ms
+	int DAS = 0;//ms
+
+	int volume = 100;//0~100
+
+} gameSetting;
+
 int blocks[7] /*28种方块IJLOSTZ各4种形态*/[4][2] /*4个x,y坐标*/ = {
 	{                                                                       /* I */
 		{ 0, 1 }, { 1, 1 }, { 2, 1 }, { 3, 1 }
@@ -288,45 +296,6 @@ public:
 		}
 		return(false);
 	}
-
-	void harddrop(RenderWindow* window, Clock textTimer, Text eliminateText)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			curBlock[i] = shadow[i];
-		}
-
-		int count = 0;
-		if (table[(int)curBlock[1].y - 1][(int)curBlock[1].x - 1])
-			count++;
-		if (table[(int)curBlock[1].y + 1][(int)curBlock[1].x - 1])
-			count++;
-		if (table[(int)curBlock[1].y - 1][(int)curBlock[1].x + 1])
-			count++;
-		if (table[(int)curBlock[1].y + 1][(int)curBlock[1].x + 1])
-			count++;
-
-		if (count >= 3 && gameData.blockIndex == 6) {
-			gameData.eliminates.tSpin = true;
-		}
-		else {
-			gameData.eliminates.tSpin = false;
-		}
-
-		/* 要固化处理 */
-		for (int i = 0; i < 4; i++)
-		{
-			table[int(curBlock[i].y)][int(curBlock[i].x)] = gameData.blockIndex;
-		}
-
-		gameData.isHold = false;
-
-		newBlock();
-		if (!check())
-		{
-			window->close();
-		}
-	}
 } KeyEvents;
 
 /* ----- 检查是否合法 ----- */
@@ -345,26 +314,26 @@ bool check()
 	return(true);
 }
 
-/* ----- 生成新方块 ----- */
-void newBlock()
-{
-	/*
-	 * 获取一个随机值（1~7）
-	 * TODO:7bag出块方式
-	 */
+void newbag(int count) {
+	if (count == 7) {
+		for (int i = 7; i < 14; i++) {
+			int randomNum = 1 + rand() % (14 - i);
+			int counting = 0;
+			while (1) {
+				if (gameData.nextUsed[counting] == true)
+					randomNum--;
 
-	int count = 0;
-	for (int i = 0; i < 14; i++) {
-		if (gameData.next[i]) {
-			count++;
+				if (randomNum == 0) {
+					gameData.nextUsed[counting] = false;
+					gameData.next[i] = counting + 1;
+					break;
+				}
+
+				counting++;
+			}
 		}
 	}
-
-	for (int i = 0; i < 7; i++) {
-		gameData.nextUsed[i] = true;
-	}
-
-	if (count == 0) {
+	else if(count == 14) {
 		for (int i = 0; i < 7; i++) {
 			int randomNum = 1 + rand() % (7 - i); /* 随机取1~7随机数 */
 			int counting = 0;
@@ -403,23 +372,32 @@ void newBlock()
 			}
 		}
 	}
-	else if (count == 7) {
-		for (int i = 7; i < 14; i++) {
-			int randomNum = 1 + rand() % (14 - i);
-			int counting = 0;
-			while (1) {
-				if (gameData.nextUsed[counting] == true)
-					randomNum--;
+}
 
-				if (randomNum == 0) {
-					gameData.nextUsed[counting] = false;
-					gameData.next[i] = counting + 1;
-					break;
-				}
+/* ----- 生成新方块 ----- */
+void newBlock()
+{
+	/*
+	 * 获取一个随机值（1~7）
+	 * TODO:7bag出块方式
+	 */
 
-				counting++;
-			}
+	int count = 0;
+	for (int i = 0; i < 14; i++) {
+		if (gameData.next[i]) {
+			count++;
 		}
+	}
+
+	for (int i = 0; i < 7; i++) {
+		gameData.nextUsed[i] = true;
+	}
+
+	if (count == 0) {
+		newbag(14);
+	}
+	else if (count == 7) {
+		newbag(7);
 	}
 
 	gameData.blockIndex = gameData.next[0];
@@ -500,8 +478,6 @@ void game(Font font, RenderWindow *window) {
 
 	srand(time(0));                     /* 生成一个随机种子 */
 
-	newBlock();                             /* 产生新方块 */
-
 	Clock	downDelay;                      /* 生成一个计时器 */
 	Clock	lockTimer;
 	float	timer = 0;
@@ -512,12 +488,27 @@ void game(Font font, RenderWindow *window) {
 	eliminateText.move(512, 256);
 	Clock textTimer;
 
+	int line = 0;
+	Text lineText;
+	lineText.setFont(font);
+	lineText.setCharacterSize(55);
+	lineText.move(250,256);
+
+	Clock readyClock;
+	readyClock.restart();
+	Text readyText;
+	readyText.setFont(font);
+	readyText.setCharacterSize(55);
+	bool readyFinish = false;
+
+	newbag(14);
+
 	/* ----- 添加游戏背景 -----// */
 	Texture background, tiles, nextB, holdB;       /* 把图片加载到内存里 */
 
 	background.loadFromFile("image/background.png");
 	Sprite spriteBackGround(background);  /* 根据图片创建“精灵” */
-	spriteBackGround.move(357, 0);
+	spriteBackGround.move(222, 0);
 
 	tiles.loadFromFile("image/tiles.png");
 	nextB.loadFromFile("image/tiles.png");
@@ -533,12 +524,6 @@ void game(Font font, RenderWindow *window) {
 	/* ----- 开始游戏 -----// */
 	while ((*window).isOpen()) /* 如果窗口没有被关闭，继续循环 */
 	{
-
-		if (isLock)
-		{
-			timer = lockTimer.getElapsedTime().asMilliseconds();
-		}
-
 		Event event;
 
 		while (window->pollEvent(event))
@@ -589,7 +574,24 @@ void game(Font font, RenderWindow *window) {
 					break;
 
 				case Keyboard::Space:
-					KeyEvents.harddrop(window, textTimer, eliminateText);
+					for (int i = 0; i < 4; i++)
+					{
+						curBlock[i] = shadow[i];
+					}
+
+					/* 要固化处理 */
+					for (int i = 0; i < 4; i++)
+					{
+						table[int(curBlock[i].y)][int(curBlock[i].x)] = gameData.blockIndex;
+					}
+
+					gameData.isHold = false;
+
+					newBlock();
+					if (!check())
+					{
+						return;
+					}
 					break;
 
 				case Keyboard::Escape:
@@ -608,6 +610,144 @@ void game(Font font, RenderWindow *window) {
 				gameData.delay = gameData.downDelay;
 			}
 		}
+
+		/* ----- 画方块 -----// */
+		(*window).clear();
+		(*window).draw(spriteBackGround); /* 渲染背景 */;
+
+		for (int i = 0; i < ROW_COUNT; i++)
+		{
+			for (int j = 0; j < COL_COUNT; j++)
+			{
+				if (table[i][j] == 0 /*|| table[i][j] == -1*/)
+					continue;
+				spriteBlock.setTextureRect(IntRect(table[i][j] * 30, 0, 30, 30));
+				spriteBlock.setPosition(j * 30, i * 30);
+				spriteBlock.move(362, 5); /* offset */
+				(*window).draw(spriteBlock);
+			}
+		}
+		for (int i = 0; i < 4; i++)
+		{
+			/*下落中的方块 */
+			spriteBlock.setTextureRect(IntRect(gameData.blockIndex * 30, 0, 30, 30));
+			spriteBlock.setPosition(curBlock[i].x * 30, curBlock[i].y * 30);
+			spriteBlock.move(362, 5);       /* offset */
+			if (readyFinish) {
+				(*window).draw(spriteBlock);
+			}
+
+			/* 影子 */
+			spriteBlock.setTextureRect(IntRect(0, 0, 30, 30));
+			spriteBlock.setPosition(shadow[i].x * 30, shadow[i].y * 30);
+			spriteBlock.move(362, 5);       /* offset */
+			if (readyFinish) {
+				(*window).draw(spriteBlock);
+			}
+
+			/*next */
+			holdBlock.setTextureRect(IntRect(gameData.hold * 30, 0, 30, 30));
+			nextBlock1.setTextureRect(IntRect(gameData.next[0] * 30, 0, 30, 30));
+			nextBlock2.setTextureRect(IntRect(gameData.next[1] * 30, 0, 30, 30));
+			nextBlock3.setTextureRect(IntRect(gameData.next[2] * 30, 0, 30, 30));
+			nextBlock4.setTextureRect(IntRect(gameData.next[3] * 30, 0, 30, 30));
+			nextBlock5.setTextureRect(IntRect(gameData.next[4] * 30, 0, 30, 30));
+
+			holdBlock.setPosition((blocks[gameData.hold - 1][i][0] + 3) * 30, blocks[gameData.hold - 1][i][1] * 30);
+			nextBlock1.setPosition((blocks[gameData.next[0] - 1][i][0] + 3) * 30, blocks[gameData.next[0] - 1][i][1] * 30);
+			nextBlock2.setPosition((blocks[gameData.next[1] - 1][i][0] + 3) * 30, blocks[gameData.next[1] - 1][i][1] * 30);
+			nextBlock3.setPosition((blocks[gameData.next[2] - 1][i][0] + 3) * 30, blocks[gameData.next[2] - 1][i][1] * 30);
+			nextBlock4.setPosition((blocks[gameData.next[3] - 1][i][0] + 3) * 30, blocks[gameData.next[3] - 1][i][1] * 30);
+			nextBlock5.setPosition((blocks[gameData.next[4] - 1][i][0] + 3) * 30, blocks[gameData.next[4] - 1][i][1] * 30);
+
+			if (gameData.hold == 1)holdBlock.move(142, 35);
+			else if (gameData.hold == 4)holdBlock.move(172, 50);
+			else
+				holdBlock.move(157, 50);
+
+
+			if (gameData.next[0] == 1)nextBlock1.move(582, 35);
+			else if (gameData.next[0] == 4)nextBlock1.move(612, 50);
+			else
+				nextBlock1.move(597, 50);
+
+
+			if (gameData.next[1] == 1)nextBlock2.move(582, 110);
+			else if (gameData.next[1] == 4)nextBlock2.move(612, 125);
+			else
+				nextBlock2.move(597, 125);
+
+
+			if (gameData.next[2] == 1)nextBlock3.move(582, 185);
+			else if (gameData.next[2] == 4)nextBlock3.move(612, 200);
+			else
+				nextBlock3.move(597, 200);
+
+
+			if (gameData.next[3] == 1)nextBlock4.move(582, 260);
+			else if (gameData.next[3] == 4)nextBlock4.move(612, 275);
+			else
+				nextBlock4.move(597, 275);
+
+
+			if (gameData.next[4] == 1)nextBlock5.move(582, 335);
+			else if (gameData.next[4] == 4)nextBlock5.move(612, 350);
+			else
+				nextBlock5.move(597, 350);
+
+			if (gameData.hold != 0) {
+				(*window).draw(holdBlock);
+			}
+
+			(*window).draw(nextBlock1);
+			(*window).draw(nextBlock2);
+			(*window).draw(nextBlock3);
+			(*window).draw(nextBlock4);
+			(*window).draw(nextBlock5);
+		}
+
+		std::string lineString = "";
+		lineString += (line / 100 == 0 ? "0" : "");
+		lineString += (line / 10 == 0 ? "0" : "");
+		lineString += (line / 1 == 0 ? "0" : "");
+		lineString += (line == 0 ? "" : std::to_string(line));
+		lineText.setString(lineString);
+		(*window).draw(lineText);
+
+		//ready...set...go
+		if (readyClock.getElapsedTime().asMilliseconds() >= 0 && readyClock.getElapsedTime().asMilliseconds() <= 3000 && !readyFinish) {
+
+			if (readyClock.getElapsedTime().asMilliseconds() < 1000) {
+				readyText.setString("ready...");
+			}
+			else if (readyClock.getElapsedTime().asMilliseconds() < 2000 && readyClock.getElapsedTime().asMilliseconds() >= 1000) {
+				readyText.setString("set...");
+			}
+			else if (readyClock.getElapsedTime().asMilliseconds() >= 2000) {
+				readyText.setString("go!");
+			}
+
+			readyText.setPosition(512, 250);
+			FloatRect lb = readyText.getLocalBounds();
+			readyText.setOrigin(lb.left + lb.width / 2, lb.top + lb.height / 2);
+
+			(*window).draw(readyText);
+			(*window).display();
+			continue;
+		}
+		else if(readyClock.getElapsedTime().asMilliseconds() > 3000 && !readyFinish) {
+			readyFinish = true;
+			newBlock();                             /* 产生新方块 */
+		}
+
+		(*window).display();
+
+		if (isLock)
+		{
+			timer = lockTimer.getElapsedTime().asMilliseconds();
+		}
+
+
 
 		refShadow();
 
@@ -662,7 +802,7 @@ void game(Font font, RenderWindow *window) {
 
 		/* ----- 消除 -----// */
 		{
-			int line = 0;//消除的行数
+			int clearLine = 0;//消除的行数
 			for (int i = 0; i < ROW_COUNT; i++) {
 				int count = 0;
 				for (int j = 0; j < COL_COUNT; j++) {
@@ -670,7 +810,7 @@ void game(Font font, RenderWindow *window) {
 						++count;
 				}
 				if (count == COL_COUNT) {
-					++line;
+					++clearLine;
 					for (int j = i; j > 0; j--) {
 						for (int k = 0; k < COL_COUNT; k++) {
 							table[j][k] = table[j - 1][k];
@@ -679,107 +819,11 @@ void game(Font font, RenderWindow *window) {
 					for (int j = 0; j < COL_COUNT; j++) {
 						table[0][j] = 0;
 					}
-
-					gameData.eliminates.line = line;
-					textTimer.restart();
-					gameData.eliminates.storage();
-					eliminateText.setLetterSpacing(1);
-					eliminateText.setCharacterSize(40);
 				}
 			}
+
+			line += clearLine;
 		}
-		/* ----- 画方块 -----// */
-		(*window).clear();
-		(*window).draw(spriteBackGround); /* 渲染背景 */;
-
-		for (int i = 0; i < ROW_COUNT; i++)
-		{
-			for (int j = 0; j < COL_COUNT; j++)
-			{
-				if (table[i][j] == 0 /*|| table[i][j] == -1*/)
-					continue;
-				spriteBlock.setTextureRect(IntRect(table[i][j] * 30, 0, 30, 30));
-				spriteBlock.setPosition(j * 30, i * 30);
-				spriteBlock.move(362, 5); /* offset */
-				(*window).draw(spriteBlock);
-			}
-		}
-		for (int i = 0; i < 4; i++)
-		{
-			/*下落中的方块 */
-			spriteBlock.setTextureRect(IntRect(gameData.blockIndex * 30, 0, 30, 30));
-			spriteBlock.setPosition(curBlock[i].x * 30, curBlock[i].y * 30);
-			spriteBlock.move(362, 5);       /* offset */
-			(*window).draw(spriteBlock);
-
-			/* 影子 */
-			spriteBlock.setTextureRect(IntRect(0, 0, 30, 30));
-			spriteBlock.setPosition(shadow[i].x * 30, shadow[i].y * 30);
-			spriteBlock.move(362, 5);       /* offset */
-			(*window).draw(spriteBlock);
-
-			/*next */
-			holdBlock.setTextureRect(IntRect(gameData.hold * 30, 0, 30, 30));
-			nextBlock1.setTextureRect(IntRect(gameData.next[0] * 30, 0, 30, 30));
-			nextBlock2.setTextureRect(IntRect(gameData.next[1] * 30, 0, 30, 30));
-			nextBlock3.setTextureRect(IntRect(gameData.next[2] * 30, 0, 30, 30));
-			nextBlock4.setTextureRect(IntRect(gameData.next[3] * 30, 0, 30, 30));
-			nextBlock5.setTextureRect(IntRect(gameData.next[4] * 30, 0, 30, 30));
-
-			holdBlock.setPosition((blocks[gameData.hold - 1][i][0] + 3) * 30, blocks[gameData.hold - 1][i][1] * 30);
-			nextBlock1.setPosition((blocks[gameData.next[0] - 1][i][0] + 3) * 30, blocks[gameData.next[0] - 1][i][1] * 30);
-			nextBlock2.setPosition((blocks[gameData.next[1] - 1][i][0] + 3) * 30, blocks[gameData.next[1] - 1][i][1] * 30);
-			nextBlock3.setPosition((blocks[gameData.next[2] - 1][i][0] + 3) * 30, blocks[gameData.next[2] - 1][i][1] * 30);
-			nextBlock4.setPosition((blocks[gameData.next[3] - 1][i][0] + 3) * 30, blocks[gameData.next[3] - 1][i][1] * 30);
-			nextBlock5.setPosition((blocks[gameData.next[4] - 1][i][0] + 3) * 30, blocks[gameData.next[4] - 1][i][1] * 30);
-
-			if (gameData.hold == 1)holdBlock.move(105, 35);
-			else if (gameData.hold == 4)holdBlock.move(135, 50);
-			else
-				holdBlock.move(120, 50);
-
-
-			if (gameData.next[0] == 1)nextBlock1.move(635, 35);
-			else if (gameData.next[0] == 4)nextBlock1.move(665, 50);
-			else
-				nextBlock1.move(650, 50);
-
-
-			if (gameData.next[1] == 1)nextBlock2.move(635, 110);
-			else if (gameData.next[1] == 4)nextBlock2.move(665, 125);
-			else
-				nextBlock2.move(650, 125);
-
-
-			if (gameData.next[2] == 1)nextBlock3.move(635, 185);
-			else if (gameData.next[2] == 4)nextBlock3.move(665, 200);
-			else
-				nextBlock3.move(650, 200);
-
-
-			if (gameData.next[3] == 1)nextBlock4.move(635, 260);
-			else if (gameData.next[3] == 4)nextBlock4.move(665, 275);
-			else
-				nextBlock4.move(650, 275);
-
-
-			if (gameData.next[4] == 1)nextBlock5.move(635, 335);
-			else if (gameData.next[4] == 4)nextBlock5.move(665, 350);
-			else
-				nextBlock5.move(650, 350);
-
-			if (gameData.hold != 0) {
-				(*window).draw(holdBlock);
-			}
-
-			(*window).draw(nextBlock1);
-			(*window).draw(nextBlock2);
-			(*window).draw(nextBlock3);
-			(*window).draw(nextBlock4);
-			(*window).draw(nextBlock5);
-		}
-
-		(*window).display();
 	}
 }
 
@@ -796,7 +840,7 @@ int main()
 	backgroundMusic.openFromFile(
 		"music/other side - Lena Raine.wav");            /* 加载背景音乐 */
 	backgroundMusic.setLoop(true); /* 设置重复播放音乐 */
-	backgroundMusic.setVolume(25);
+	backgroundMusic.setVolume(5);
 	backgroundMusic.play();                 /* 播放音乐 */
 
 	while (1) {
@@ -811,38 +855,45 @@ int main()
 
 		Button playButton;
 		playButton.window = &window;
-		playButton.setTexture("image/start.png");
+		playButton.setTexture("image/button/start.png");
 		playButton.setPosition(0.0f, 100.0f);
 		playButton.setScale(3);
 		playButton.draw();
 
+		Button settingButton;
+		settingButton.window = &window;
+		settingButton.setTexture("image/button/setting.png");
+		settingButton.setScale(3);
+		settingButton.setPosition(0.0f, 200.0f);
+		settingButton.draw();
+
 		Button exitButton;
 		exitButton.window = &window;
-		exitButton.setTexture("image/exit.png");
+		exitButton.setTexture("image/button/exit.png");
 		exitButton.setScale(3);
-		exitButton.setPosition(0.0f, 200.0f);
+		exitButton.setPosition(0.0f, 300.0f);
 		exitButton.draw();
 
 
 		playButton.buttonText.setFont(font);
 		playButton.buttonText.setCharacterSize(80);
-		playButton.buttonText.setString("Start:Endless");
-
-		//文字对齐按钮
+		playButton.buttonText.setString(L"开始：无尽");
 		FloatRect box = playButton.buttonSprite.getGlobalBounds();//获取按钮的范围
 		playButton.buttonText.setPosition(box.left, box.top);
-
 		window.draw(playButton.buttonText);
 
+		settingButton.buttonText.setFont(font);
+		settingButton.buttonText.setCharacterSize(80);
+		settingButton.buttonText.setString(L"设置");
+		box = settingButton.buttonSprite.getGlobalBounds();//获取按钮的范围
+		settingButton.buttonText.setPosition(box.left, box.top);
+		window.draw(settingButton.buttonText);
 
 		exitButton.buttonText.setFont(font);
 		exitButton.buttonText.setCharacterSize(80);
-		exitButton.buttonText.setString("Exit");
-
-		//文字对齐按钮
+		exitButton.buttonText.setString(L"退出");
 		box = exitButton.buttonSprite.getGlobalBounds();//获取按钮的范围
 		exitButton.buttonText.setPosition(box.left, box.top);
-
 		window.draw(exitButton.buttonText);
 
 
@@ -851,6 +902,40 @@ int main()
 			window.pollEvent(event);
 			if (playButton.onClick(event)) {
 				break;
+			}
+
+			if (settingButton.onClick(event)) {
+
+				while(window.isOpen()){
+					window.clear();
+
+					Text volume;
+					volume.setFont(font);
+					volume.setCharacterSize(50);
+
+					Button volumeAdd;
+					Button volumeSub;
+
+					volumeAdd.window = &window;
+					volumeSub.window = &window;
+
+					volumeAdd.setTexture("image/button/add_button.png");
+					volumeSub.setTexture("image/button/sub_button.png");
+
+					volumeAdd.setScale(3);
+					volumeSub.setScale(3);
+
+					volumeAdd.draw();
+					volumeSub.draw();
+
+					window.pollEvent(event);
+					if (volumeAdd.onClick(event)) {
+
+					}
+					if (volumeSub.onClick(event)) {
+
+					}
+				}
 			}
 
 			if (exitButton.onClick(event)
@@ -864,8 +949,6 @@ int main()
 		game(font, &window);
 		window.clear();
 	}
-
-
 
 	return(0);
 }
