@@ -5,8 +5,9 @@
 #include <Windows.h>
 #include <string>
 #include "Button.h"
+#include "Display.h"
 using namespace sf;
-#pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+//#pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
 bool check();
 void newBlock();
@@ -99,6 +100,7 @@ public:
 }gameData;
 
 class Settings {
+public:
 	int ARR = 0;//ms
 	int DAS = 0;//ms
 
@@ -521,15 +523,25 @@ void game(Font font, RenderWindow *window) {
 	Sprite	nextBlock5(nextB);
 	Sprite	holdBlock(holdB);
 
+	Button backBtn;
+	backBtn.window = window;
+
+	Event event;
+
 	/* ----- 开始游戏 -----// */
 	while ((*window).isOpen()) /* 如果窗口没有被关闭，继续循环 */
 	{
-		Event event;
-
 		while (window->pollEvent(event))
 		{
-			if (event.type == Event::Closed)
+			Vector2i mousePos = Mouse::getPosition(*window);
+			Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
+			if (backBtn.click(event, mousePos, mousePosF)) {
 				return;
+			}
+
+			if (event.type == Event::Closed)
+				window->close();
 
 			if (event.type == Event::KeyPressed)
 			{
@@ -613,6 +625,10 @@ void game(Font font, RenderWindow *window) {
 
 		/* ----- 画方块 -----// */
 		(*window).clear();
+
+		backBtn.setButton("image/button/back.png", 900.0f, 10.0f, 2);
+		backBtn.draw(font, L"");
+
 		(*window).draw(spriteBackGround); /* 渲染背景 */;
 
 		for (int i = 0; i < ROW_COUNT; i++)
@@ -653,7 +669,9 @@ void game(Font font, RenderWindow *window) {
 			nextBlock4.setTextureRect(IntRect(gameData.next[3] * 30, 0, 30, 30));
 			nextBlock5.setTextureRect(IntRect(gameData.next[4] * 30, 0, 30, 30));
 
-			holdBlock.setPosition((blocks[gameData.hold - 1][i][0] + 3) * 30, blocks[gameData.hold - 1][i][1] * 30);
+			if (gameData.hold != 0) {
+				holdBlock.setPosition((blocks[gameData.hold - 1][i][0] + 3) * 30, blocks[gameData.hold - 1][i][1] * 30);
+			}
 			nextBlock1.setPosition((blocks[gameData.next[0] - 1][i][0] + 3) * 30, blocks[gameData.next[0] - 1][i][1] * 30);
 			nextBlock2.setPosition((blocks[gameData.next[1] - 1][i][0] + 3) * 30, blocks[gameData.next[1] - 1][i][1] * 30);
 			nextBlock3.setPosition((blocks[gameData.next[2] - 1][i][0] + 3) * 30, blocks[gameData.next[2] - 1][i][1] * 30);
@@ -840,105 +858,81 @@ int main()
 	backgroundMusic.openFromFile(
 		"music/other side - Lena Raine.wav");            /* 加载背景音乐 */
 	backgroundMusic.setLoop(true); /* 设置重复播放音乐 */
-	backgroundMusic.setVolume(5);
+	backgroundMusic.setVolume(gameSetting.volume);
 	backgroundMusic.play();                 /* 播放音乐 */
 
-	while (1) {
+	while (window.isOpen()) {
+		Event event;
+
+		Button playButton, settingButton, exitButton;
 		Texture titleTexture;
 		titleTexture.loadFromFile("image/title.png");
 		Sprite title(titleTexture);
-		title.setScale(0.5f, 0.5f);
-		title.setPosition(400.0f, 400.0f);
-		window.draw(title);
 
-		Event event;
+		while (1) {
+			window.clear();
 
-		Button playButton;
-		playButton.window = &window;
-		playButton.setTexture("image/button/start.png");
-		playButton.setPosition(0.0f, 100.0f);
-		playButton.setScale(3);
-		playButton.draw();
+			title.setScale(0.5f, 0.5f);
+			title.setPosition(400.0f, 400.0f);
+			window.draw(title);
 
-		Button settingButton;
-		settingButton.window = &window;
-		settingButton.setTexture("image/button/setting.png");
-		settingButton.setScale(3);
-		settingButton.setPosition(0.0f, 200.0f);
-		settingButton.draw();
+			playButton.window = &window;
+			settingButton.window = &window;
+			exitButton.window = &window;
 
-		Button exitButton;
-		exitButton.window = &window;
-		exitButton.setTexture("image/button/exit.png");
-		exitButton.setScale(3);
-		exitButton.setPosition(0.0f, 300.0f);
-		exitButton.draw();
+			playButton.setButton("image/button/start.png", 0.0f, 100.0f, 3);
+			settingButton.setButton("image/button/setting.png", 0.0f, 200.0f, 3);
+			exitButton.setButton("image/button/exit.png", 0.0f, 300.0f, 3);
 
+			playButton.draw(font, L"开始");
+			settingButton.draw(font, L"设置");
+			exitButton.draw(font, L"退出");
 
-		playButton.buttonText.setFont(font);
-		playButton.buttonText.setCharacterSize(80);
-		playButton.buttonText.setString(L"开始：无尽");
-		FloatRect box = playButton.buttonSprite.getGlobalBounds();//获取按钮的范围
-		playButton.buttonText.setPosition(box.left, box.top);
-		window.draw(playButton.buttonText);
+			displayText(&window, font, L"操作说明：\nA/D 向左/向右移动\nS 软降\nO/P 逆时针/顺时针旋转\n空格 硬降\n左shift 暂存", 30, 0, 500, 1, 1);
 
-		settingButton.buttonText.setFont(font);
-		settingButton.buttonText.setCharacterSize(80);
-		settingButton.buttonText.setString(L"设置");
-		box = settingButton.buttonSprite.getGlobalBounds();//获取按钮的范围
-		settingButton.buttonText.setPosition(box.left, box.top);
-		window.draw(settingButton.buttonText);
+			window.display();
 
-		exitButton.buttonText.setFont(font);
-		exitButton.buttonText.setCharacterSize(80);
-		exitButton.buttonText.setString(L"退出");
-		box = exitButton.buttonSprite.getGlobalBounds();//获取按钮的范围
-		exitButton.buttonText.setPosition(box.left, box.top);
-		window.draw(exitButton.buttonText);
-
-
-		window.display();
-		while (window.isOpen()) {
 			window.pollEvent(event);
-			if (playButton.onClick(event)) {
+			Vector2i mousePos = Mouse::getPosition(window);
+			Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
+			if (playButton.click(event, mousePos, mousePosF)) {
 				break;
 			}
 
-			if (settingButton.onClick(event)) {
-
-				while(window.isOpen()){
+			if (settingButton.click(event, mousePos, mousePosF)) {
+				SettingButton volume;
+				Button backBtn;
+				backBtn.window = &window;
+				while (1) {
 					window.clear();
 
-					Text volume;
-					volume.setFont(font);
-					volume.setCharacterSize(50);
+					backBtn.setButton("image/button/back.png", 900.0f, 700.0f, 2);
+					backBtn.draw(font, L"");
 
-					Button volumeAdd;
-					Button volumeSub;
+					volume.setButton(0, 0, font, gameSetting.volume);
+					FloatRect box = volume.subButton.buttonSprite.getGlobalBounds();
+					volume.window = &window;
+					volume.draw(&window, font, L"音量：" + to_wstring(gameSetting.volume));
 
-					volumeAdd.window = &window;
-					volumeSub.window = &window;
-
-					volumeAdd.setTexture("image/button/add_button.png");
-					volumeSub.setTexture("image/button/sub_button.png");
-
-					volumeAdd.setScale(3);
-					volumeSub.setScale(3);
-
-					volumeAdd.draw();
-					volumeSub.draw();
+					window.display();
 
 					window.pollEvent(event);
-					if (volumeAdd.onClick(event)) {
+					Vector2i mousePos = Mouse::getPosition(window);
+					Vector2f mousePosF(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 
-					}
-					if (volumeSub.onClick(event)) {
+					gameSetting.volume += volume.click(event, mousePos, mousePosF) * 10;
+					if (gameSetting.volume > 100)gameSetting.volume = 100;
+					else if (gameSetting.volume < 0)gameSetting.volume = 0;
+					backgroundMusic.setVolume(gameSetting.volume);
 
+					if (backBtn.click(event, mousePos, mousePosF)) {
+						break;
 					}
 				}
 			}
 
-			if (exitButton.onClick(event)
+			if (exitButton.click(event, mousePos, mousePosF)
 				|| event.type == Event::Closed
 				|| event.key.code == Keyboard::Escape) {
 				window.close();
