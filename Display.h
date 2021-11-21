@@ -6,7 +6,10 @@ using namespace sf;
 using namespace std;
 
 //ÏÔÊ¾Í¼Ïñ
-void displaySprite(RenderWindow* window, string filePath, float posX = 0, float posY = 0, float scaleX = 1, float scaleY = 1);
+void displaySprite(RenderWindow* window, string filePath, float posX, float posY, float scaleX, float scaleY);
 
-//ÏÔÊ¾ÎÄ×Ö
-void displayText(RenderWindow* window, Font font, wstring textString, int textSize = 30, float posX = 0, float posY = 0, float scaleX = 1, float scaleY = 1);
+//ÏÔÊ¾ÎÄ×Ö(int lo == 0 ¾Ó×ó  == 1 ¾ÓÖÐ  == 2 ¾ÓÓÒ)
+void displayText(RenderWindow* window, Font font, wstring textString, int textSize, float posX, float posY);
+void displayText(RenderWindow* window, Font font, wstring textString, int textSize, float posX, float posY, int lo);
+void displayText(RenderWindow* window, Font font, wstring textString, int textSize, float posX, float posY, float scaleX, float scaleY, int lo);
+void displayText(RenderWindow* window, Font font, wstring textString, int textSize, float posX, float posY, float scaleX, float scaleY, int lo, Color color);

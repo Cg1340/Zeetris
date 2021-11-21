@@ -8,10 +8,12 @@ using namespace std;
 
 class Button {
 public:
-	void setButton(string file, float posX, float posY, int scale);
+	void setButton(string file, float posX, float posY, float scale);
 	bool click(Event event, Vector2i mousePos, Vector2f mousePosF);
-	void draw(Font font, wstring textString);
-	bool rel = false;
+	void draw(Font font, int textSize, wstring textString);
+	float scale;
+	bool isActive;
+	bool PreBehRel;
 	RenderWindow* window;
 	Sprite buttonSprite;
 
@@ -24,7 +26,7 @@ public:
 
 
 	void setButton(float posX, float posY, Font font, int value);
-	void draw(RenderWindow* window, Font font, wstring textString);
+	void draw(RenderWindow* window, Font font, int textSize, wstring textString);
 	int click(Event event, Vector2i mousePos, Vector2f mousePosF);
 
 	RenderWindow *window;

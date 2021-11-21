@@ -147,11 +147,16 @@
   <ItemGroup>
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="Display.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="SteadyClock.cpp" />
     <ClCompile Include="Zeetris.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h" />
     <ClInclude Include="Display.h" />
+    <ClInclude Include="Game.h" />
+    <ClInclude Include="GameSetting.h" />
+    <ClInclude Include="SteadyClock.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

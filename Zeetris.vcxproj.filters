@@ -24,12 +24,27 @@
     <ClCompile Include="Display.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Game.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SteadyClock.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Button.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Display.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SteadyClock.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GameSetting.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
